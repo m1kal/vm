@@ -6,13 +6,15 @@ Both the UI and instructions are available in Polish and in English.
 
 There is no such concept as machine code - the instructions are evaluated.
 
+The result is available at https://m1kal.github.io/vm/resources/public/
+
 Ideas for improvement:
 - Integrate program counter to registers to allow more flexible flow control
 - Add data memory
 - Find a way to expand program memory while keeping the UI clear.
 
 Example program to multiply two numbers using addition in a loop:
-set 1 4
+```set 1 4
 set 2 6
 copy 2 3
 copy 1 2
@@ -22,6 +24,7 @@ eval
 copy 8 2
 if-zero 3 goto 16
 goto 6
+```
 
 To run in development mode:
 1. Clone the repo
