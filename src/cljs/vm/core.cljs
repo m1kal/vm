@@ -1,104 +1,82 @@
 (ns vm.core
   (:require [reagent.core :as reagent]
-            [cljs.test :as test :refer [is testing]]
             [cljs.reader :as reader]
-            [devcards.core :as dc]))
+            [vm.text :as t]))
 
 (enable-console-print!)
 
-(defonce regs (reagent/atom [0 0 0 0 0 0 0 0]))
-(defonce prog (reagent/atom (vec (repeat 32 "nop"))))
-(defonce sel-op (reagent/atom "+"))
+(defonce language (reagent/atom "polish"))
+(defonce registers (reagent/atom [0 0 0 0 0 0 0 0]))
+(defonce program (reagent/atom (vec (repeat 32 "nop"))))
+(defonce operator (reagent/atom "+"))
 (def pc (reagent/atom 0))
 
+(defn display [text]
+  (text (condp = @language "polish" t/polish t/english)))
+
 (defn oper []
-  (condp = @sel-op
-    "+" +
-    "-" -
-    "*" *
-    "/" /))
+  (condp = @operator "+" + "-" - "*" * "/" /))
 
-
-(defn regbank [regs]
-  (let [r @regs]
-    [:div
-      [:table {:style {:border "solid" :margin-left "20px"}}
-        [:thead [:tr (for [i (range 8)] ^{:key i} [:th (inc i)])]]
-        [:tbody
-          [:tr
-            (for [i (range 8)] ^{:key i}
-              [:td {:style {:border :solid :width "20px" :text-align :center
-                            :background (condp = i 0 "#E0FFE0" 1 "#E0FFE0" 7 "#40FFFF" "#FFFFFF")}} (r i)])]]]]))
-
-(defn help []
-  [:div {:style {:position :relative :top "-350px" :left "600px"}}
-   "Instructions:"
-   [:ul
-    [:li "set X Y - sets register X to value Y"]
-    [:li "copy X Y - sets register Y to the value of register Y"]
-    [:li "inc X - increments register X by 1"]
-    [:li "dec X - decrements register X by 1"]
-    [:li "setop X - sets operation to X. Supported values: +, -, *, /"]
-    [:li "goto X - jumps to instruction X"]
-    [:li "eval - adds registers 0 and 1, the sum is stored in register 7"]]])
-
-(defn progmem [prog pc]
-  (let [p @prog c @pc]
-    [:div
-     [:div "Program:"]
-     (for [i (range 32)]
-       ^{:key i}
-       [:input {:type "text"
-                :style {:background (if (= c i) "#40FF40" "#C0C0C0")}
-                :on-change #(swap! prog assoc i (.-value (.-target %))) :value (p i)}])
-
-     ]))
-
-
-(defn run-op [op]
+(defn run-instruction [op]
   (let [[a & b] (clojure.string/split op " ")]
     (condp = a
-      "set" (swap! regs assoc (dec (reader/read-string (first b))) (reader/read-string (second b)))
-      "inc" (swap! regs update (dec (reader/read-string (first b))) inc)
-      "dec" (swap! regs update (dec (reader/read-string (first b))) dec)
-      "copy" (swap! regs assoc (dec (reader/read-string (last b))) (@regs (dec (reader/read-string (first b)))))
-      "eval" (swap! regs assoc 7 ((oper) (@regs 0) (@regs 1)))
-      "goto" (reset! pc (dec (reader/read-string (first b))))
-      "setop" (reset! sel-op (first b))
+      (display :op-set) (swap! registers assoc (dec (reader/read-string (first b))) (reader/read-string (second b)))
+      (display :op-inc) (swap! registers update (dec (reader/read-string (first b))) inc)
+      (display :op-dec) (swap! registers update (dec (reader/read-string (first b))) dec)
+      (display :op-copy) (swap! registers assoc (dec (reader/read-string (last b))) (@registers (dec (reader/read-string (first b)))))
+      (display :op-eval) (swap! registers assoc 7 ((oper) (@registers 0) (@registers 1)))
+      (display :op-goto) (reset! pc (dec (reader/read-string (first b))))
+      (display :op-setop) (reset! operator (first b))
       nil)))
 
-(defn run-single []
+(defn execute []
   (let [p @pc]
-    (swap! pc inc)  
-    (run-op (@prog p))))
+    (swap! pc inc)
+    (run-instruction (@program p))))
 
-(defn vm [regs]
+; Reagent components
+
+(defn regbank [registers]
+  (let [r @registers]
+    [:div
+      [:table {:style {:border "solid" :margin-left "20px"}}
+        [:thead [:tr (for [idx (range 8)] ^{:key idx} [:th (inc idx)])]]
+        [:tbody
+          [:tr
+            (for [idx (range 8)] ^{:key idx}
+              [:td {:style {:border :solid :width "20px" :text-align :center
+                            :background (condp = idx 0 "#E0FFE0" 1 "#E0FFE0" 7 "#40FFFF" "#FFFFFF")}} (r idx)])]]]]))
+
+(defn vm [registers]
   (fn []
     [:div {:style {:width "400px" :border :solid }}
-     [:div
-      [:div "Registers"]
-      [:div [regbank regs]]
-      [:div {:style {:position :relative :left "320px" :top "-60px" }} "Op " @sel-op]]]))
+      [:div (display :registers)]
+      [:div [regbank registers]]
+      [:div {:style {:position :relative :left "320px" :top "-60px" }} "Op " @operator]]))
 
-; (dc/defcard-rg a-node
-;   [:div "a" [:div "b"]])
+(defn progmem [program pc]
+  (let [code @program pc @pc]
+    [:div
+     [:div (display :program)]
+     (for [idx (range 32)]
+       ^{:key idx}
+       [:div {:style {:width "140px"}}
+        [:span {:style {:display :inline-block :width "40px"}} (inc idx)]
+        [:input {:type "text"
+                 :style {:width "100px" :background (if (= pc idx) "#40FF40" "#C0C0C0")}
+                 :on-change #(swap! program assoc idx (.-value (.-target %))) :value (code idx)}]])]))
 
-; (dc/deftest node-test
-;   (testing "is-nil"
-;     (is (nil? nil))))
+(defn app []
+  [:div {:style {:position :relative}}
+   [display :vm]
+   [vm registers]
+   [:select {:on-change #(reset! language (.-value (.-target %)))} [:option {:value :polish} "Polski"] [:option {:value :english} "English"]]
+  ;  [:button {:on-click #(doseq [i @program] (run-instruction i))} [display :run]]
+   [:button {:on-click #(execute)} [display :execute]]
+   [:button {:on-click #(reset! program (vec (repeat 32 "nop")))} [display :reset]]
+   [:button {:on-click #(reset! pc 0)} [display :restart]]
+   [progmem program pc]
+   [display :help]
+   ])
 
-(defn page []
-  [:div
-   "The VM"
-   [vm regs]
-   [progmem prog pc]
-   [:button {:on-click #(doseq [i @prog] (run-op i))} "Run"]
-   [:button {:on-click #(run-single)} "Run single op"]
-   [:button {:on-click #(reset! prog (vec (repeat 32 "nop")))} "Reset program memory"]
-   [:button {:on-click #(reset! pc 0)} "Restart program"]
-   [help]])
-
-(defn ^{:export true} main []
-  (reagent/render page (.getElementById js/document "app")))
-
-(main)
+(reagent/render app (.getElementById js/document "app"))
