@@ -17,27 +17,27 @@
 (defn oper []
   (condp = @operator "+" + "-" - "*" * "/" /))
 
-(defn run-instruction [op]
-  (let [[a & b] (clojure.string/split op " ")]
-    (condp = a
-      (display :op-set) (swap! registers assoc (dec (reader/read-string (first b))) (reader/read-string (second b)))
-      (display :op-inc) (swap! registers update (dec (reader/read-string (first b))) inc)
-      (display :op-dec) (swap! registers update (dec (reader/read-string (first b))) dec)
-      (display :op-copy) (swap! registers assoc (dec (reader/read-string (last b))) (@registers (dec (reader/read-string (first b)))))
+(defn run-instruction [input]
+  (let [[opcode & args] (clojure.string/split input " ")]
+    (condp = opcode
+      (display :op-set) (swap! registers assoc (dec (reader/read-string (first args))) (reader/read-string (second args)))
+      (display :op-inc) (swap! registers update (dec (reader/read-string (first args))) inc)
+      (display :op-dec) (swap! registers update (dec (reader/read-string (first args))) dec)
+      (display :op-copy) (swap! registers assoc (dec (reader/read-string (last args))) (@registers (dec (reader/read-string (first args)))))
       (display :op-eval) (swap! registers assoc 7 ((oper) (@registers 0) (@registers 1)))
-      (display :op-goto) (reset! pc (dec (reader/read-string (first b))))
-      (display :op-setop) (reset! operator (first b))
+      (display :op-goto) (reset! pc (dec (reader/read-string (first args))))
+      (display :op-setop) (reset! operator (first args))
       nil)))
 
 (defn execute []
-  (let [p @pc]
+  (let [current-pc @pc]
     (swap! pc inc)
-    (run-instruction (@program p))))
+    (run-instruction (@program current-pc))))
 
 ; Reagent components
 
 (defn regbank [registers]
-  (let [r @registers]
+  (let [regs @registers]
     [:div
       [:table {:style {:border "solid" :margin-left "20px"}}
         [:thead [:tr (for [idx (range 8)] ^{:key idx} [:th (inc idx)])]]
@@ -45,7 +45,8 @@
           [:tr
             (for [idx (range 8)] ^{:key idx}
               [:td {:style {:border :solid :width "20px" :text-align :center
-                            :background (condp = idx 0 "#E0FFE0" 1 "#E0FFE0" 7 "#40FFFF" "#FFFFFF")}} (r idx)])]]]]))
+                            :background (condp = idx 0 "#E0FFE0" 1 "#E0FFE0" 7 "#40FFFF" "#FFFFFF")}}
+                   (regs idx)])]]]]))
 
 (defn vm [registers]
   (fn []
@@ -58,25 +59,23 @@
   (let [code @program pc @pc]
     [:div
      [:div (display :program)]
-     (for [idx (range 32)]
-       ^{:key idx}
+     (for [idx (range 32)] ^{:key idx}
        [:div {:style {:width "140px"}}
-        [:span {:style {:display :inline-block :width "40px"}} (inc idx)]
-        [:input {:type "text"
-                 :style {:width "100px" :background (if (= pc idx) "#40FF40" "#C0C0C0")}
-                 :on-change #(swap! program assoc idx (.-value (.-target %))) :value (code idx)}]])]))
+         [:span {:style {:display :inline-block :width "40px"}} (inc idx)]
+         [:input {:type "text"
+                  :style {:width "100px" :background (if (= pc idx) "#40FF40" "#C0C0C0")}
+                  :on-change #(swap! program assoc idx (.-value (.-target %))) :value (code idx)}]])]))
 
 (defn app []
   [:div {:style {:position :relative}}
    [display :vm]
    [vm registers]
-   [:select {:on-change #(reset! language (.-value (.-target %)))} [:option {:value :polish} "Polski"] [:option {:value :english} "English"]]
-  ;  [:button {:on-click #(doseq [i @program] (run-instruction i))} [display :run]]
+   [:select {:on-change #(reset! language (.-value (.-target %)))}
+            [:option {:value :polish} "Polski"] [:option {:value :english} "English"]]
    [:button {:on-click #(execute)} [display :execute]]
    [:button {:on-click #(reset! program (vec (repeat 32 "nop")))} [display :reset]]
    [:button {:on-click #(reset! pc 0)} [display :restart]]
    [progmem program pc]
-   [display :help]
-   ])
+   [display :help]])
 
 (reagent/render app (.getElementById js/document "app"))
