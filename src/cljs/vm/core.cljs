@@ -19,6 +19,7 @@
 
 (defn run-instruction [input]
   (let [[opcode & args] (clojure.string/split input " ")]
+    (prn opcode args)
     (condp = opcode
       (display :op-set) (swap! registers assoc (dec (reader/read-string (first args))) (reader/read-string (second args)))
       (display :op-inc) (swap! registers update (dec (reader/read-string (first args))) inc)
@@ -27,6 +28,7 @@
       (display :op-eval) (swap! registers assoc 7 ((oper) (@registers 0) (@registers 1)))
       (display :op-goto) (reset! pc (dec (reader/read-string (first args))))
       (display :op-setop) (reset! operator (first args))
+      (display :op-if) (if (zero? (@registers (dec (reader/read-string (first args))))) (run-instruction (clojure.string/join " " (rest args))))
       nil)))
 
 (defn execute []
@@ -60,10 +62,10 @@
     [:div
      [:div (display :program)]
      (for [idx (range 32)] ^{:key idx}
-       [:div {:style {:width "140px"}}
+       [:div {:style {:width "200px"}}
          [:span {:style {:display :inline-block :width "40px"}} (inc idx)]
          [:input {:type "text"
-                  :style {:width "100px" :background (if (= pc idx) "#40FF40" "#C0C0C0")}
+                  :style {:width "160px" :background (if (= pc idx) "#40FF40" "#C0C0C0")}
                   :on-change #(swap! program assoc idx (.-value (.-target %))) :value (code idx)}]])]))
 
 (defn app []
