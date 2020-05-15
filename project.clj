@@ -1,4 +1,4 @@
-(defproject vm "1.3.0"
+(defproject vm "1.4.0"
   :description "Simple virtual machine in ClojureScript with Reagent"
   :url "https://github.com/m1kal/vm"
   :license "MIT"
@@ -19,4 +19,11 @@
           :output-to "resources/public/js/app.js"
           :output-dir "resources/public/js/out"
           :source-map true
-          :optimizations :none}}}})
+          :optimizations :none}}
+       :rel
+        {:source-paths ["src/cljs"]
+         :compiler
+         {:main "vm.core"
+          :asset-path "js/out"
+          :output-to "resources/public/js/app.js"
+          :optimizations :advanced}}}})
