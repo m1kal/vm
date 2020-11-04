@@ -9,6 +9,7 @@
 (defonce registers (reagent/atom [0 0 0 0 0 0 0 0]))
 (defonce program (reagent/atom (vec (repeat 32 "nop"))))
 (defonce operator (reagent/atom "+"))
+(defonce screen-content (reagent/atom ""))
 (def pc (reagent/atom 0))
 
 (defn display [text]
@@ -29,6 +30,9 @@
       (display :op-goto) (reset! pc (dec (reader/read-string (first args))))
       (display :op-setop) (reset! operator (first args))
       (display :op-if) (if (zero? (@registers (dec (reader/read-string (first args))))) (run-instruction (clojure.string/join " " (rest args))))
+      (display :op-disp) (reset! screen-content (str (@registers (dec (reader/read-string (first args))))))
+      (display :op-disp-add) (swap! screen-content #(str % " " (@registers (dec (reader/read-string (first args))))))
+      (display :op-cls) (reset! screen-content "")
       nil)))
 
 (defn execute []
@@ -59,7 +63,7 @@
 
 (defn progmem [program pc]
   (let [code @program pc @pc]
-    [:div
+    [:div {:style {:width "200px"}}
      [:div (display :program)]
      (for [idx (range 32)] ^{:key idx}
        [:div {:style {:width "200px"}}
@@ -68,16 +72,27 @@
                   :style {:width "160px" :background (if (= pc idx) "#40FF40" "#C0C0C0")}
                   :on-change #(swap! program assoc idx (.-value (.-target %))) :value (code idx)}]])]))
 
+(defn screen [content]
+  [:div {:style {:position :relative :left "220px"
+                 :top (str "-" (* 32 22) "px")
+                 :border "solid"
+                 :width "300px"
+                 :height "200px"
+                 :font-size "50"
+                 :padding "10px"}}
+    @content])
+
 (defn app []
   [:div {:style {:position :relative}}
    [display :vm]
    [vm registers]
    [:select {:on-change #(reset! language (.-value (.-target %)))}
-            [:option {:value :polish} "Polski"] [:option {:value :english} "English"]]
+    [:option {:value :polish} "Polski"] [:option {:value :english} "English"]]
    [:button {:on-click #(execute)} [display :execute]]
    [:button {:on-click #(reset! program (vec (repeat 32 "nop")))} [display :reset]]
    [:button {:on-click #(reset! pc 0)} [display :restart]]
    [progmem program pc]
+   [screen screen-content]
    [display :help]])
 
 (reagent/render app (.getElementById js/document "app"))

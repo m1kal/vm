@@ -8,6 +8,9 @@
               :op-goto "goto"
               :op-setop "setop"
               :op-if "if-zero"
+              :op-disp "display"
+              :op-disp-add "add-to-display"
+              :op-cls "clear-screen"
               :registers "Registers"
               :vm "Virtual Machine"
               :run "Run"
@@ -25,7 +28,10 @@
                       [:li "setop X - sets operation to X. Supported values: +, -, *, /"]
                       [:li "goto X - jumps to instruction X"]
                       [:li "eval - runs the operation on registers 1 and 2, the result is stored in register 8"]
-                      [:li "if-zero X [instr] - runs instr if register X is zero"]]]})
+                      [:li "if-zero X [instr] - runs instr if register X is zero"]
+                      [:li "display X - displays register X on the screen"]
+                      [:li "add-to-display X - adds register X to screen contents"]
+                      [:li "clear-screen - clears the screen"]]]})
 
 (def polish {:op-set "ustaw"
              :op-inc "zwiększ"
@@ -35,6 +41,9 @@
              :op-goto "skocz"
              :op-setop "działanie"
              :op-if "jeśli-zero"
+             :op-disp "wyświetl"
+             :op-disp-add "wyświetl-obok"
+             :op-cls "wyczyść-ekran"
              :registers "Rejestry"
              :vm "Maszyna wirtualna"
              :run "Uruchom"
@@ -52,4 +61,7 @@
                      [:li "działanie X - Ustawia działanie X. Dopuszczalne działania: +, -, *, /"]
                      [:li "skocz X - skacze do instrukcji X"]
                      [:li "oblicz - wykonuje działanie na rejestrach 1 i 2, wynik ląduje w rejestrze 8"]
-                     [:li "jeśli-zero X [instr] - wykonuje instr jeśli rejestr X jest równy zeru"]]]})
+                     [:li "jeśli-zero X [instr] - wykonuje instr jeśli rejestr X jest równy zeru"]
+                     [:li "wyświetl X - wyświetla na ekranie rejestr X"]
+                     [:li "wyświetl-obok X - dodaje rejestr X do zawartości ekranu"]
+                     [:li "wyczyść-ekran - wymazuje zawartość ekranu"]]]})
